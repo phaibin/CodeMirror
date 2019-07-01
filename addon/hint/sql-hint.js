@@ -71,9 +71,19 @@
   }
 
   function match(string, word) {
-    var len = string.length;
-    var sub = getText(word).substr(0, len);
-    return string.toUpperCase() === sub.toUpperCase();
+    if (string.includes('.')) {
+      var x = string.split(/\.(.*)/);
+      x = x.filter(function(value, index, arr) {
+        return value !== '';
+      })
+      var reg = '^' + x[0] + '\\.' + '.*';
+      if (x.length > 1) {
+        reg = reg + x[1].split('').join('.*');
+      }
+      return getText(word).match(new RegExp(reg));
+    } else {
+      return getText(word).match(new RegExp(string.split('').join('.*')));
+    }
   }
 
   function addMatches(result, search, wordlist, formatter) {
