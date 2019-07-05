@@ -134,9 +134,10 @@
 
   function addMatches(result, search, wordlist, formatter) {
     if (isArray(wordlist)) {
-      for (var i = 0; i < wordlist.length; i++)
-      var m = match(search, wordlist[i]);
-      if (m.match) { result.push(formatter(wordlist[i], m.commonLength)); }
+      for (var i = 0; i < wordlist.length; i++) {
+        var m = match(search, wordlist[i]);
+        if (m.match) { result.push(formatter(wordlist[i], m.commonLength)); }
+      }
     } else {
       for (var word in wordlist) if (wordlist.hasOwnProperty(word)) {
         var val = wordlist[word];
@@ -144,8 +145,8 @@
           val = word;
         else
           val = val.displayText ? {text: val.text, displayText: val.displayText} : val.text;
-          var m = match(search, val);
-          if (m.match) { result.push(formatter(val, m.commonLength)) }
+        var m = match(search, val);
+        if (m.match) { result.push(formatter(val, m.commonLength)) }
       }
     }
   }
