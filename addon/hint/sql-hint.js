@@ -70,9 +70,48 @@
     return result;
   }
 
+  function longestCommonSubstring(string1, string2) {
+    // init max value
+    var longestCommonSubstring = 0;
+    // init 2D array with 0
+    var table = [],
+              len1 = string1.length,
+              len2 = string2.length,
+              row, col;
+    for(row = 0; row <= len1; row++){
+      table[row] = [];
+      for(col = 0; col <= len2; col++){
+        table[row][col] = 0;
+      }
+    }
+    // fill table
+          var i, j;
+    for(i = 0; i < len1; i++){
+      for(j = 0; j < len2; j++){
+        if(string1[i] === string2[j]){
+          if(table[i][j] === 0){
+            table[i+1][j+1] = 1;
+          } else {
+            table[i+1][j+1] = table[i][j] + 1;
+          }
+          if(table[i+1][j+1] > longestCommonSubstring){
+            longestCommonSubstring = table[i+1][j+1];
+          }
+        } else {
+          table[i+1][j+1] = 0;
+        }
+      }
+    }
+    return longestCommonSubstring;
+  }
+
   function match(string, word) {
-    if (string.includes('.')) {
-      var x = string.split(/\.(.*)/);
+    var lowerWord = getText(word).toLowerCase();
+    var lowerString = string.toLowerCase();
+    var m = false;
+    var l = 0;
+    if (lowerString.includes('.')) {
+      var x = lowerString.split(/\.(.*)/);
       x = x.filter(function(value, index, arr) {
         return value !== '';
       })
@@ -80,24 +119,33 @@
       if (x.length > 1) {
         reg = reg + x[1].split('').join('.*');
       }
-      return getText(word).match(new RegExp(reg));
+      m = lowerWord.match(new RegExp(reg));
+      if (m) {
+        l = x[1] ? longestCommonSubstring(lowerWord, x[1]) : 0;
+      }
     } else {
-      return getText(word).match(new RegExp(string.split('').join('.*')));
+      m = lowerWord.match(new RegExp(lowerString.split('').join('.*')));
+      if (m) {
+        l = longestCommonSubstring(lowerWord, lowerString);
+      }
     }
+    return { match: m, commonLength: l };
   }
 
   function addMatches(result, search, wordlist, formatter) {
     if (isArray(wordlist)) {
       for (var i = 0; i < wordlist.length; i++)
-        if (match(search, wordlist[i])) result.push(formatter(wordlist[i]))
+      var m = match(search, wordlist[i]);
+      if (m.match) { result.push(formatter(wordlist[i], m.commonLength)); }
     } else {
       for (var word in wordlist) if (wordlist.hasOwnProperty(word)) {
-        var val = wordlist[word]
+        var val = wordlist[word];
         if (!val || val === true)
-          val = word
+          val = word;
         else
-          val = val.displayText ? {text: val.text, displayText: val.displayText} : val.text
-        if (match(search, val)) result.push(formatter(val))
+          val = val.displayText ? {text: val.text, displayText: val.displayText} : val.text;
+          var m = match(search, val);
+          if (m.match) { result.push(formatter(val, m.commonLength)) }
       }
     }
   }
@@ -152,12 +200,12 @@
     // Try to complete table names
     var string = nameParts.join(".");
     addMatches(result, string, tables, function(w) {
-      return useIdentifierQuotes ? insertIdentifierQuotes(w) : w;
+      return { text: useIdentifierQuotes ? insertIdentifierQuotes(w) : w, commonLength: l };
     });
 
     // Try to complete columns from defaultTable
     addMatches(result, string, defaultTable, function(w) {
-      return useIdentifierQuotes ? insertIdentifierQuotes(w) : w;
+      return { text: useIdentifierQuotes ? insertIdentifierQuotes(w) : w, commonLength: l };
     });
 
     // Try to complete columns
@@ -187,7 +235,7 @@
           w = shallowClone(w);
           w.text = tableInsert + "." + w.text;
         }
-        return useIdentifierQuotes ? insertIdentifierQuotes(w) : w;
+        return { text: useIdentifierQuotes ? insertIdentifierQuotes(w) : w, commonLength: l };
       });
     }
 
@@ -284,30 +332,34 @@
     }
     if (search) {
 	    if (search.charAt(0) == "." || search.charAt(0) == identifierQuote) {
-	      start = nameCompletion(cur, token, result, editor);
+        start = nameCompletion(cur, token, result, editor);
+        result.sort(function(a, b) { return a.commonLength > b.commonLength ? -1 : 1 });
+        result = result.map(function(a) { return a.text });
 	    } else {
-	      var objectOrClass = function(w, className) {
+	      var objectOrClass = function(w, l, className) {
 	        if (typeof w === "object") {
-	          w.className = className;
+            w.commonLength = l;
+            w.className = className;
 	        } else {
-	          w = { text: w, className: className };
+	          w = { text: w, commonLength: l, className: className };
 	        }
 	        return w;
 	      };
-		    addMatches(result, search, defaultTable, function(w) {
-		        return objectOrClass(w, "CodeMirror-hint-table CodeMirror-hint-default-table");
+		    addMatches(result, search, defaultTable, function(w, l) {
+		        return objectOrClass(w, l, "CodeMirror-hint-table CodeMirror-hint-default-table");
 		    });
 		    addMatches(
 		        result,
 		        search,
-		        tables, function(w) {
-		          return objectOrClass(w, "CodeMirror-hint-table");
+		        tables, function(w, l) {
+		          return objectOrClass(w, l, "CodeMirror-hint-table");
 		        }
 		    );
 		    if (!disableKeywords)
-		      addMatches(result, search, keywords, function(w) {
-		          return objectOrClass(w.toUpperCase(), "CodeMirror-hint-keyword");
-		      });
+		      addMatches(result, search, keywords, function(w, l) {
+		          return objectOrClass(w.toUpperCase(), l, "CodeMirror-hint-keyword");
+          });
+        result.sort(function(a, b) { return a.commonLength > b.commonLength ? -1 : 1 });
 		  }
 		}
     return {list: result, from: Pos(cur.line, start), to: Pos(cur.line, end)};
