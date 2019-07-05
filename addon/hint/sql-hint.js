@@ -200,12 +200,12 @@
 
     // Try to complete table names
     var string = nameParts.join(".");
-    addMatches(result, string, tables, function(w) {
+    addMatches(result, string, tables, function(w, l) {
       return { text: useIdentifierQuotes ? insertIdentifierQuotes(w) : w, commonLength: l };
     });
 
     // Try to complete columns from defaultTable
-    addMatches(result, string, defaultTable, function(w) {
+    addMatches(result, string, defaultTable, function(w, l) {
       return { text: useIdentifierQuotes ? insertIdentifierQuotes(w) : w, commonLength: l };
     });
 
@@ -227,7 +227,7 @@
       columns = columns.columns;
 
     if (columns) {
-      addMatches(result, string, columns, function(w) {
+      addMatches(result, string, columns, function(w, l) {
         var tableInsert = table;
         if (alias == true) tableInsert = aliasTable;
         if (typeof w == "string") {
