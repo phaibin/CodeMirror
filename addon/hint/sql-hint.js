@@ -71,6 +71,7 @@
   }
 
   function longestCommonSubstring(string1, string2) {
+    if (string1 == string2) return 999;
     // init max value
     var longestCommonSubstring = 0;
     // init 2D array with 0
